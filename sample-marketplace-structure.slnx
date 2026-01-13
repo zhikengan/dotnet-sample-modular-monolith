@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="App.Modules.Catalog/App.Modules.Catalog.csproj" />
+  <Project Path="App.Modules.Ordering/App.Modules.Ordering.csproj" />
+  <Project Path="App.Modules.User/App.Modules.User.csproj" />
+  <Project Path="App.Portal.Admin/App.Portal.Admin.csproj" />
+  <Project Path="App.Shared/App.Shared.csproj" />
+  <Project Path="App.Web/App.Web.csproj" />
+</Solution>

@@ -1,0 +1,74 @@
+@page "/products"
+@inject ISender Sender
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@using App.Modules.Catalog.Features.GetProducts
+@using App.Modules.Catalog.Features.CreateProduct
+
+<MudText Typo="Typo.h4" GutterBottom="true">Products</MudText>
+
+<MudTable
+    T="ProductDto" 
+    ServerData="@(new Func<TableState, CancellationToken, Task<TableData<ProductDto>>>(ServerReload))"
+        Dense="true" Hover="true" @ref="_table">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Product List</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateDialog">Add Product</MudButton>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh>Price</MudTh>
+        <MudTh>Stock</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.Id</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Description">@context.Description</MudTd>
+        <MudTd DataLabel="Price">@context.Price.ToString("C")</MudTd>
+        <MudTd DataLabel="Stock">@context.Stock</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No matching records found</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading...</MudText>
+    </LoadingContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<ProductDto> _table = default!;
+
+    private async Task<TableData<ProductDto>> ServerReload(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var query = new GetProductsQuery(state.Page + 1, state.PageSize);
+            var result = await Sender.Send(query, cancellationToken);
+            return new TableData<ProductDto>() { TotalItems = (int)result.TotalCount, Items = result.Items };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading products: {ex.Message}", Severity.Error);
+            Console.WriteLine(ex);
+            return new TableData<ProductDto>() { TotalItems = 0, Items = Array.Empty<ProductDto>() };
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<Components.CreateProductDialog>("Add Product", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+}

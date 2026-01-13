@@ -1,0 +1,61 @@
+@inject ISender Sender
+@inject ISender Sender
+@inject ISnackbar Snackbar
+@using App.Modules.Catalog.Features.CreateProduct
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudTextField T="string" Label="Name" Required="true" RequiredError="Name is required!" @bind-Value="_command.Name" />
+            <MudTextField T="string" Label="Description" Lines="3" @bind-Value="_command.Description" />
+            <MudNumericField T="decimal" Label="Price" Format="C2" Required="true" @bind-Value="_command.Price" Min="0" />
+            <MudNumericField T="int" Label="Stock" Required="true" @bind-Value="_command.Stock" Min="0" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool _success;
+    private MudForm _form = default!;
+    // CreateProductCommand is immutable record, but we can't bind directly to it easily in MudForm without a wrapper or using a mutable DTO.
+    // For simplicity, we'll use a local mutable model and map it.
+    private CreateProductModel _model = new();
+
+    private class CreateProductModel
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public int Stock { get; set; }
+    }
+    
+    // Actually, let's use the local model
+    private CreateProductModel _command = new();
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            var command = new CreateProductCommand(_command.Name, _command.Description, _command.Price, _command.Stock);
+            try 
+            {
+                await Sender.Send(command);
+                Snackbar.Add("Product created successfully", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error creating product: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}
