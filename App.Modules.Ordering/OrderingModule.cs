@@ -17,6 +17,7 @@ public static class OrderingModule
     {
         services.AddDbContext<OrderingDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+
         // Validators
         services.AddValidatorsFromAssembly(typeof(OrderingModule).Assembly);
 

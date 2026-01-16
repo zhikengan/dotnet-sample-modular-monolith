@@ -1,5 +1,7 @@
 using App.Modules.User.Data;
+using App.Shared.Exceptions;
 using App.Shared.Infrastructure;
+using App.Shared.Utils;
 
 namespace App.Modules.User.Features.GetCurrentUser;
 
@@ -16,10 +18,7 @@ public class GetCurrentUserHandler : IQueryHandler<GetCurrentUserQuery, UserDto>
     public async Task<UserDto> Handle(GetCurrentUserQuery request, CancellationToken cancellationToken)
     {
         var user = await _dbContext.Users.FindAsync(request.UserId);
-        
-        if (user == null)
-            throw new Exception("User not found"); // Should use BusinessException/NotFoundException
-
+        Assert.NotNull(user, errorCode: ErrorCodes.USER_NOT_FOUND);
         return new UserDto(user.Id, user.Username);
     }
 }
