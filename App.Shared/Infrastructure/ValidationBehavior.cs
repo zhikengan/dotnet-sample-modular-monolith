@@ -28,7 +28,7 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
         if (failures.Count != 0)
         {
             var errorMessage = string.Join("; ", failures.Select(f => f.ErrorMessage));
-            throw new BusinessException(new ErrorCodes("VALIDATION_ERROR", errorMessage) { }); 
+            throw new BusinessException(new ErrorCodes("VALIDATION_ERROR", errorMessage, ErrorCategory.Validation) { }); 
             // Note: In real app, might want structured validation errors
         }
 

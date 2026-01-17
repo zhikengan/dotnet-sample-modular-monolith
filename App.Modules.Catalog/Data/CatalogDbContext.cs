@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
 
 namespace App.Modules.Catalog.Data;
 
@@ -17,5 +18,9 @@ public class CatalogDbContext : DbContext
         // Configuration
         modelBuilder.Entity<Product>().HasKey(p => p.Id);
         modelBuilder.Entity<Product>().Property(p => p.Price).HasPrecision(18, 2);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
     }
 }

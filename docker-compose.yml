@@ -6,9 +6,66 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: marketplace_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  app.web:
+    build:
+      context: .
+      dockerfile: App.Web/Dockerfile
+    ports:
+      - "5000:8080"
+      - "5001:8443"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=marketplace_db;Username=postgres;Password=postgres
+      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
+      - Services__Catalog=http://app.service.catalog:8080
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      app.service.catalog:
+        condition: service_started
+
+  app.service.catalog:
+    build:
+      context: .
+      dockerfile: App.Service.Catalog/Dockerfile
+    ports:
+      - "5002:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=marketplace_db;Username=postgres;Password=postgres
+      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   postgres_data:

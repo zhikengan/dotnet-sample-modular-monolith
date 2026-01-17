@@ -18,8 +18,10 @@
     <PackageReference Include="Microsoft.OpenApi" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
-    <PackageReference Include="MassTransit.SqlTransport.PostgreSQL" />
+
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <PackageReference Include="Grpc.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,8 +29,8 @@
     <ProjectReference Include="..\App.Modules.User\App.Modules.User.csproj" />
     <ProjectReference Include="..\App.Modules.Ordering\App.Modules.Ordering.csproj" />
     <ProjectReference Include="..\App.Modules.Notification\App.Modules.Notification.csproj" />
-    <ProjectReference Include="..\App.Modules.Catalog\App.Modules.Catalog.csproj" />
     <ProjectReference Include="..\App.Portal.Admin\App.Portal.Admin.csproj" />
+    <ProjectReference Include="..\App.Shared.Protos\App.Shared.Protos.csproj" />
   </ItemGroup>
 
 </Project>

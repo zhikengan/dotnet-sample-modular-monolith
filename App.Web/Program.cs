@@ -6,10 +6,11 @@ using System.Text;
 using App.Modules.User;
 using App.Modules.Ordering;
 using App.Modules.Notification;
-using App.Modules.Catalog;
+using App.Web.Endpoints; // New Endpoints
 using MediatR;
 using App.Shared.Infrastructure;
 using MudBlazor.Services;
+using App.Shared.Protos; // Proto Namespace
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,13 +79,13 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-// MassTransit with SQL Transport (PostgreSQL)
-builder.Services.AddOptions<SqlTransportOptions>().Configure(options =>
+// gRPC Client for Catalog Service
+builder.Services.AddGrpcClient<CatalogService.CatalogServiceClient>(o =>
 {
-    options.ConnectionString = "Host=localhost;Port=5432;Database=marketplace_db;Username=postgres;Password=postgres";
+    o.Address = new Uri(builder.Configuration["Services:Catalog"] ?? "https://localhost:7001"); // Default dev port, will override in docker-compose
 });
 
-builder.Services.AddPostgresMigrationHostedService();
+
 
 builder.Services.AddMassTransit(x =>
 {
@@ -95,8 +96,9 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumers(typeof(OrderingModule).Assembly);
     x.AddConsumers(typeof(NotificationModule).Assembly);
 
-    x.UsingPostgres((context, cfg) =>
+    x.UsingRabbitMq((context, cfg) =>
     {
+        cfg.Host(builder.Configuration.GetConnectionString("RabbitMq") ?? "amqp://guest:guest@localhost:5672");
         cfg.ConfigureEndpoints(context);
     });
 });
@@ -108,7 +110,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddUserModule(builder.Configuration);
 builder.Services.AddOrderingModule(builder.Configuration);
 builder.Services.AddNotificationModule(builder.Configuration);
-builder.Services.AddCatalogModule(builder.Configuration);
+// Catalog Module Removed (Remote Service)
 
 var app = builder.Build();
 
@@ -135,6 +137,6 @@ app.MapRazorComponents<App.Web.Components.App>()
 // Map Endpoints
 app.MapUserModuleEndpoints();
 app.MapOrderingModuleEndpoints();
-app.MapCatalogModuleEndpoints();
+app.MapCatalogEndpoints(); // New Remote Endpoints
 
 app.Run();

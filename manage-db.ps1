@@ -39,13 +39,13 @@ param(
 )
 
 $solutionDir = Get-Location
-$startupProject = "App.Web"
+$defaultStartup = "App.Web"
 
 # Define Modules Config
 $modules = @{
-    "User" = @{ Project = "App.Modules.User"; Context = "UserDbContext" };
-    "Ordering" = @{ Project = "App.Modules.Ordering"; Context = "OrderingDbContext" };
-    "Catalog" = @{ Project = "App.Modules.Catalog"; Context = "CatalogDbContext" }
+    "User" = @{ Project = "App.Modules.User"; Context = "UserDbContext"; Startup = "App.Web" };
+    "Ordering" = @{ Project = "App.Modules.Ordering"; Context = "OrderingDbContext"; Startup = "App.Web" };
+    "Catalog" = @{ Project = "App.Modules.Catalog"; Context = "CatalogDbContext"; Startup = "App.Service.Catalog" };
 }
 
 function Run-DotNetCommand {
@@ -68,12 +68,19 @@ foreach ($key in $targetModules.Keys) {
     $config = $targetModules[$key]
     $proj = $config.Project
     $ctx = $config.Context
+    $startup = if ($config.Startup) { $config.Startup } else { $defaultStartup }
 
     Write-Host "Processing Module: $key..." -ForegroundColor Magenta
 
     if ($Action -eq "drop" -or $Action -eq "reset") {
+        # Only drop once if handling distinct DBs? Currently all share DB.
+        # But 'dotnet ef database drop' works per context connection.
+        # If they share the same DB, the first drop wipes it. subsequent drops might fail or warn.
+        # For 'reset', we want to drop once globally? 
+        # Actually, let's just let it run. EF Core handles 'database does not exist' gracefully usually.
+        
         Write-Host "Dropping Database ($ctx)..." -ForegroundColor Yellow
-        Run-DotNetCommand "dotnet ef database drop --project $proj --startup-project $startupProject --context $ctx --force"
+        Run-DotNetCommand "dotnet ef database drop --project $proj --startup-project $startup --context $ctx --force"
     }
 
     if ($Action -eq "reset") {
@@ -81,7 +88,7 @@ foreach ($key in $targetModules.Keys) {
         if (Test-Path "$proj\Data\Migrations") { Remove-Item "$proj\Data\Migrations" -Recurse -Force }
 
         Write-Host "Adding Initial Migration ($ctx)..." -ForegroundColor Yellow
-        Run-DotNetCommand "dotnet ef migrations add $Name --project $proj --startup-project $startupProject --context $ctx"
+        Run-DotNetCommand "dotnet ef migrations add $Name --project $proj --startup-project $startup --context $ctx"
     }
 
     if ($Action -eq "add") {
@@ -90,12 +97,12 @@ foreach ($key in $targetModules.Keys) {
             exit 1
         }
         Write-Host "Adding Migration '$Name' to ($ctx)..." -ForegroundColor Yellow
-        Run-DotNetCommand "dotnet ef migrations add $Name --project $proj --startup-project $startupProject --context $ctx"
+        Run-DotNetCommand "dotnet ef migrations add $Name --project $proj --startup-project $startup --context $ctx"
     }
 
     if ($Action -eq "update" -or $Action -eq "reset") {
         Write-Host "Updating Database ($ctx)..." -ForegroundColor Yellow
-        Run-DotNetCommand "dotnet ef database update --project $proj --startup-project $startupProject --context $ctx"
+        Run-DotNetCommand "dotnet ef database update --project $proj --startup-project $startup --context $ctx"
     }
 }
 
